@@ -1,3 +1,4 @@
-[submodule "ceph-ansible"]
-	path = ceph-ansible
-	url = ./2.1-ceph-ansible/
+[submodule "2.1-ceph-ansible"]
+	path = 2.1-ceph-ansible
+	url = git@github.com:teralytics/ceph-ansible.git
+	branch = stable-2.1
