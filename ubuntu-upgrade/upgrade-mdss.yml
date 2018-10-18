@@ -1,0 +1,26 @@
+---
+
+# This part is specific to Ceph MDSs
+- set_fact:
+    mds_name: "{{ ansible_hostname }}"
+  when: not mds_use_fqdn
+
+- set_fact:
+    mds_name: "{{ ansible_fqdn }}"
+  when: mds_use_fqdn
+
+- name: Ensure ceph-mds target exists
+  file:
+    path: "/etc/systemd/system/ceph-mds.target.wants/"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Ensure ceph-mds@{{mds_name}}.service is enabled at boot
+  file:
+    src: "/lib/systemd/system/ceph-mds@.service"
+    dest: "/etc/systemd/system/ceph-mds.target.wants/ceph-mds@{{mds_name}}.service"
+    state: link
+    owner: root
+    group: root

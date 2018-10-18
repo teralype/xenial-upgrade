@@ -26,6 +26,10 @@
           name: update-manager-core
           state: present
 
+      # NOTE: This is not idempotent.  Running this command multiple times
+      # will upgrade Ubuntu multiple releases.  That is the reason this
+      # task is gated with:
+      # when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'trusty'
       - name: Run do-release-upgrade non-interactively
         command: do-release-upgrade -f DistUpgradeViewNonInteractive
 
@@ -33,6 +37,11 @@
       - name: Tasks specific to Ceph monitors
         include: upgrade-mons.yml
         when: "'mons' in group_names"
+
+      # This part is specific to Ceph MDSs
+      - name: Tasks specific to Ceph MDSs
+        include: upgrade-mdss.yml
+        when: "'mdss' in group_names"
 
       - name: Reboot the server
         command: reboot

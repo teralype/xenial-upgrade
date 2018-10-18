@@ -39,7 +39,8 @@ cephx: true
 
 ## Monitor options
 monitor_interface: eth0
-mon_use_fqdn: false # if set to true, the MON name used will be the fqdn in the ceph.conf
+mon_use_fqdn: false
+mds_use_fqdn: false
 
 ## OSD options
 journal_size: 5120 # OSD journal size in MB
