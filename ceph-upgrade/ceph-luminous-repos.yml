@@ -1,0 +1,19 @@
+---
+
+# Tasks to disable Ceph Jewel repositories and to enable
+# Ceph Luminous
+
+- name: Disable Ubuntu repository for Ceph Jewel
+  apt_repository:
+    repo: deb http://download.ceph.com/debian-jewel xenial main
+    state: absent
+
+- name: Remove stale repo files
+  file:
+    path: /etc/apt/sources.list.d/download_ceph_com_debian_jewel.list.distUpgrade
+    state: absent
+
+- name: Enable Ubuntu repository for Ceph Luminous
+  apt_repository:
+    repo: deb http://download.ceph.com/debian-luminous xenial main
+    state: present

@@ -1,0 +1,22 @@
+---
+
+- set_fact:
+    mds_name: "{{ ansible_hostname }}"
+  when: not mds_use_fqdn
+    
+- set_fact:
+    mds_name: "{{ ansible_fqdn }}"
+  when: mds_use_fqdn
+
+- include: ceph-luminous-repos.yml
+
+- name: Upgrade Ceph packages
+  apt:
+    name: ceph
+    state: latest
+    update_cache: yes
+
+- name: Restart Ceph MDS
+  service:
+    name: ceph-mds@{{mds_name}}
+    state: restarted

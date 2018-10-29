@@ -1,0 +1,22 @@
+---
+
+- set_fact:
+    monitor_name: "{{ ansible_hostname }}"
+  when: not mon_use_fqdn
+    
+- set_fact:
+    monitor_name: "{{ ansible_fqdn }}"
+  when: mon_use_fqdn
+
+- include: ceph-luminous-repos.yml
+
+- name: Upgrade Ceph packages
+  apt:
+    name: ceph
+    state: latest
+    update_cache: yes
+
+- name: Restart Ceph monitor
+  service:
+    name: ceph-mon@{{monitor_name}}
+    state: restarted

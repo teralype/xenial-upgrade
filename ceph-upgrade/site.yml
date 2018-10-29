@@ -1,0 +1,38 @@
+---
+
+- name: Prepare Ceph cluster for the upgrade
+  hosts: mons[0]
+  gather_facts: false
+  become: true
+  tasks:
+  - name: Set Ceph attributes in preparation for the upgrade
+    command: "/usr/bin/ceph osd set {{item}}"
+    with_items:
+    - sortbitwise
+    - noout
+
+- name: Upgrade Ceph monitors to Luminous
+  hosts:
+  - mons
+  gather_facts: true
+  become: yes
+  serial: 1
+  tasks:
+  - include: upgrade-mons.yml
+
+- name: Upgrade Ceph MDSs to Luminous
+  hosts:
+  - mdss
+  gather_facts: true
+  become: yes
+  serial: 1
+  tasks:
+  - include: upgrade-mdss.yml
+
+- hosts:
+  - osds
+  gather_facts: true
+  become: yes
+  serial: 1
+  tasks:
+  - include: upgrade-osds.yml

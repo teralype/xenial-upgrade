@@ -1,0 +1,23 @@
+---
+
+- include: ceph-luminous-repos.yml
+
+- name: Retrieve information about services
+  service_facts:
+
+- set_fact:
+    ceph_osds: "{{ansible_facts.services | select('match', '^ceph-osd@') | list}}"
+
+- name: Upgrade Ceph packages
+  apt:
+    name: ceph
+    state: latest
+    update_cache: yes
+
+- name: Restart Ceph OSDs
+  service:
+    name: "{{item}}"
+    state: restarted
+  loop: "{{ceph_osds}}"
+  loop_control:
+      pause: 5
