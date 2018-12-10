@@ -1,0 +1,20 @@
+---
+
+# This part is specific to Ceph Rados GWs.
+
+- name: Ensure ceph-rgw target exists
+  file:
+    path: "/etc/systemd/system/ceph-rgw.target.wants/"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Ensure ceph-rgw@{{inventory_hostname_short}}.service is enabled at boot
+  file:
+    src: "/lib/systemd/system/ceph-rgw@.service"
+    dest: "/etc/systemd/system/ceph-rgw.target.wants/ceph-rgw@{{inventory_hostname_short}}.service"
+    state: link
+    owner: root
+    group: root
+    force: true

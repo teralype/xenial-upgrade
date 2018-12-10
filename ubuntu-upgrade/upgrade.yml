@@ -1,0 +1,124 @@
+---
+
+- name: Prepare Ceph cluster for the upgrade
+  hosts: ceph_mons[0]
+  become: true
+  tasks:
+  - name: Set Ceph 'noout' attribute in preparation for the upgrade
+    command: /usr/bin/ceph osd set noout
+
+- name: Upgrade from Ubuntu 14.04 to 16.04
+  hosts: all
+  gather_facts: false
+  become: true
+  serial: 1
+
+  vars:
+    mesos_owner: root
+    mesos_group: root
+
+  tasks:
+  - name: Fix /etc/apt/sources.list
+    replace:
+      path: /etc/apt/sources.list
+      regexp: trusty
+      replace: xenial
+      backup: yes
+
+  - name: Get additional APT source files from remote machine
+    find:
+      paths: "/etc/apt/sources.list.d"
+      patterns: "*.list"
+    register: sources
+
+  - name: Fix /etc/apt/sources.list.d/*.list
+    replace:
+      path: "{{ item.path }}"
+      regexp: trusty
+      replace: xenial
+      backup: yes
+    loop_control:
+      label: "{{ item.path }}"
+    loop: "{{ sources.files }}"
+
+  - name: Upgrade to Xenial
+    apt:
+      upgrade: dist
+      update_cache: true
+      dpkg_options: 'force-confold,force-confdef'
+    environment:
+      DEBIAN_FRONTEND: noninteractive
+
+  # This part is specific to Ceph monitors
+  - name: Tasks specific to Ceph monitors
+    include: upgrade-mons.yml
+    when: "'ceph-mons' in group_names"
+
+  # This part is specific to Ceph MDSs
+  - name: Tasks specific to Ceph MDSs
+    include: upgrade-mdss.yml
+    when: "'ceph-mdss' in group_names"
+
+  # This part is specific to Ceph RGWs
+  - name: Tasks specific to Ceph RGWs
+    include: upgrade-rgws.yml
+    when: "'ceph-rgws' in group_names"
+    tags: foo
+
+  - name: Ensure mesos-master.service is enabled at boot
+    file:
+      src: "/lib/systemd/system/mesos-master.service"
+      dest: "/etc/systemd/system/multi-user.target.wants/mesos-master.service"
+      state: link
+      owner: root
+      group: root
+    when: "'mesos_masters' in group_names"
+
+  - name: Ensure mesos-slave.service is enabled at boot
+    file:
+      src: "/lib/systemd/system/mesos-slave.service"
+      dest: "/etc/systemd/system/multi-user.target.wants/mesos-slave.service"
+      state: link
+      owner: root
+      group: root
+    when: "'mesos_slaves' in group_names"
+
+  - name: Ensure marathon is enabled at boot
+    command: /lib/systemd/systemd-sysv-install enable marathon
+    when: "'mesos_masters' in group_names"
+
+  - block:
+
+    - name: Reboot the server
+      reboot:
+
+    - name: Wait for Mesos master to come up
+      wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 5050
+        delay: 20
+        timeout: 60
+      when: "'mesos_masters' in group_names"
+      tags: mesos
+
+    - name: Wait for Mesos slave to come up
+      wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 5051
+        delay: 20
+        timeout: 60
+      when: "'mesos_slaves' in group_names"
+      tags: mesos
+
+    - name: Wait for Marathon to come up
+      wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 8080
+        delay: 20
+        timeout: 60
+      when: "'mesos_masters' in group_names"
+      tags: mesos
+
+    # Reboot machines if requested
+    when:
+    - update_reboot: true
